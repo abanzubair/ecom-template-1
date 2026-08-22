@@ -28,7 +28,8 @@ export const GlobalWidgets: React.FC = () => {
     setSelectedProduct,
     addToCart,
     toastMessage,
-    showToast
+    showToast,
+    storeInfo
   } = useApp();
 
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
@@ -58,11 +59,10 @@ export const GlobalWidgets: React.FC = () => {
   const [queryData, setQueryData] = useState({
     name: '',
     email: '',
-    subject: 'Flash Design Availability',
+    subject: 'Catalog Inquiry',
     message: ''
   });
   const [querySubmitted, setQuerySubmitted] = useState(false);
-
 
   const handleQuerySubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,14 +70,16 @@ export const GlobalWidgets: React.FC = () => {
     setTimeout(() => {
       setQuerySubmitted(false);
       setIsQueryOpen(false);
-      showToast('Your query has been sent to our desk.');
-      setQueryData({ name: '', email: '', subject: 'Flash Design Availability', message: '' });
+      showToast('Your inquiry has been sent to our desk.');
+      setQueryData({ name: '', email: '', subject: 'Catalog Inquiry', message: '' });
     }, 1500);
   };
 
   const openWhatsAppDirect = (presetMsg?: string) => {
-    const text = encodeURIComponent(presetMsg || waMessage || 'Hello VRTX Studio! I am interested in your flash designs & studio merch.');
-    window.open(`https://wa.me/919999999999?text=${text}`, '_blank');
+    const text = encodeURIComponent(presetMsg || waMessage || `Hello ${storeInfo.storeName}! I am interested in your curated collection.`);
+    const cleanNumber = storeInfo.whatsapp ? storeInfo.whatsapp.replace(/\D/g, '') : '';
+    const waUrl = cleanNumber ? `https://wa.me/${cleanNumber}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, '_blank');
   };
 
   return (
@@ -99,13 +101,15 @@ export const GlobalWidgets: React.FC = () => {
         }`}
       >
         {/* Direct Call Button */}
-        <a
-          href="tel:+919999999999"
-          className="w-12 h-12 bg-neutral-900 hover:bg-black text-white rounded-full shadow-lg border border-neutral-700 flex items-center justify-center transition-transform hover:scale-105 group"
-          title="Direct Call Option"
-        >
-          <RiPhoneLine className="w-5 h-5 text-neutral-300 group-hover:text-white" />
-        </a>
+        {storeInfo.whatsapp && (
+          <a
+            href={`tel:${storeInfo.whatsapp}`}
+            className="w-12 h-12 bg-neutral-900 hover:bg-black text-white rounded-full shadow-lg border border-neutral-700 flex items-center justify-center transition-transform hover:scale-105 group"
+            title="Direct Call Option"
+          >
+            <RiPhoneLine className="w-5 h-5 text-neutral-300 group-hover:text-white" />
+          </a>
+        )}
 
         {/* WhatsApp Chat Launcher Button */}
         <button

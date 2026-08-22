@@ -1,9 +1,15 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, CartItem, QueryFormData } from '@/types';
+import { Product, CartItem, QueryFormData, StoreInfo } from '@/types';
+import { fetchStorefrontData } from '@/services/weave365';
+
 
 interface AppContextType {
+  products: Product[];
+  storeInfo: StoreInfo;
+  isLoadingProducts: boolean;
+  isLiveCatalog: boolean;
   cart: CartItem[];
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
@@ -29,11 +35,23 @@ interface AppContextType {
   // Toast
   toastMessage: string | null;
   showToast: (msg: string) => void;
+
+  // Order on WhatsApp
+  checkoutViaWhatsApp: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [storeInfo, setStoreInfo] = useState<StoreInfo>({
+    storeName: 'My Boutique',
+    slug: '',
+    whatsapp: ''
+  });
+  const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
+  const [isLiveCatalog, setIsLiveCatalog] = useState<boolean>(false);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -41,6 +59,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSocialFeedOpen, setIsSocialFeedOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Load products on mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoadingProducts(true);
+        const data = await fetchStorefrontData();
+        if (data.products && data.products.length > 0) {
+          setProducts(data.products);
+        }
+        if (data.storeInfo) {
+          setStoreInfo(data.storeInfo);
+        }
+        setIsLiveCatalog(data.isLive);
+      } catch (err) {
+        console.error('Failed to load Weave365 catalog:', err);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -88,9 +128,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
 
+  const checkoutViaWhatsApp = () => {
+    if (cart.length === 0) return;
+    const whatsappNum = storeInfo.whatsapp ? storeInfo.whatsapp.replace(/\D/g, '') : '';
+    
+    let message = `*Order Inquiry from ${storeInfo.storeName}*\n\n`;
+    message += `Hello! I would like to place an order for the following items:\n\n`;
+    
+    cart.forEach((item, idx) => {
+      message += `${idx + 1}. *${item.product.title}* (Code: ${item.product.code})\n`;
+      message += `   Qty: ${item.quantity} × ${item.product.currency}${item.product.price.toLocaleString('en-IN')}\n`;
+      if (item.product.fabric) message += `   Fabric: ${item.product.fabric}\n`;
+      message += `\n`;
+    });
+
+    message += `*Total Amount:* ₹${subtotal.toLocaleString('en-IN')}\n\n`;
+    message += `Please confirm availability and dispatch details.`;
+
+    const encoded = encodeURIComponent(message);
+    const waUrl = whatsappNum 
+      ? `https://wa.me/${whatsappNum}?text=${encoded}`
+      : `https://wa.me/?text=${encoded}`;
+
+    if (typeof window !== 'undefined') {
+      window.open(waUrl, '_blank');
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
+        products,
+        storeInfo,
+        isLoadingProducts,
+        isLiveCatalog,
         cart,
         addToCart,
         removeFromCart,
@@ -110,6 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedProduct,
         toastMessage,
         showToast,
+        checkoutViaWhatsApp,
       }}
     >
       {children}
@@ -124,3 +196,4 @@ export const useApp = () => {
   }
   return context;
 };
+

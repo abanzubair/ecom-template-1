@@ -6,7 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { RiShoppingBag3Line, RiUser3Line, RiMenu3Line, RiCloseLine } from 'react-icons/ri';
 
 export const Header: React.FC = () => {
-  const { totalCartItems, setIsCartOpen, isLoginOpen, setIsLoginOpen, setIsQueryOpen } = useApp();
+  const { totalCartItems, setIsCartOpen, isLoginOpen, setIsLoginOpen, setIsQueryOpen, storeInfo } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -42,15 +42,14 @@ export const Header: React.FC = () => {
       <div className="w-full px-6 md:px-12 lg:px-16 xl:px-20 flex items-center justify-between">
         {/* Left Logo & Studio Label */}
         <div className="flex items-center space-x-6">
-          <Link href="/" className="flex items-baseline space-x-3 group">
-            <span className="font-extrabold text-2xl tracking-tighter uppercase font-mono group-hover:opacity-80 transition-opacity">
-              VRTX
-            </span>
-            <span className={`text-xs tracking-widest font-light hidden sm:inline transition-colors duration-500 ease-in-out ${
-              scrolled ? 'text-neutral-400' : 'text-neutral-600'
-            }`}>
-              Design studio
-            </span>
+          <Link href="/" className="flex items-center space-x-3 group">
+            {storeInfo.logoUrl ? (
+              <img src={storeInfo.logoUrl} alt={storeInfo.storeName} className="h-8 max-w-[140px] object-contain" />
+            ) : (
+              <span className="font-extrabold text-2xl tracking-tighter uppercase font-mono group-hover:opacity-80 transition-opacity">
+                {storeInfo.storeName || 'VRTX'}
+              </span>
+            )}
           </Link>
         </div>
 

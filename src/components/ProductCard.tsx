@@ -42,7 +42,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </button>
 
         {/* Product Image */}
-        <Link href="/product" className="w-full h-full block">
+        <Link href={`/product/${product.id}`} className="w-full h-full block">
           <img
             src={product.image}
             alt={product.title}
@@ -53,12 +53,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
       {/* Product Meta & Action Line */}
       <div className="mt-3 flex items-center justify-between px-1">
-        <Link href="/product" className="space-y-0.5">
+        <Link href={`/product/${product.id}`} className="space-y-0.5 flex-1 min-w-0">
           <h3 className="text-fs-sm font-semibold text-neutral-900 tracking-tight hover:text-neutral-600 transition-colors line-clamp-1">
             {product.title}
           </h3>
           <p className="text-fs-xs font-mono font-medium text-neutral-600">
-            {product.currency}{product.price.toFixed(2)}
+            {product.currency || '₹'}{product.price.toLocaleString('en-IN')}
           </p>
         </Link>
 

@@ -1,64 +1,70 @@
 'use client';
 
 import React, { useState } from 'react';
-import { INITIAL_PRODUCTS } from '@/data/products';
+import { useApp } from '@/context/AppContext';
 import { ProductCard } from './ProductCard';
 
 export const ProductGridSection: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<'all' | 'merch' | 'flash'>('all');
+  const { products, isLoadingProducts } = useApp();
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  const merchCount = INITIAL_PRODUCTS.filter((p) => p.category === 'merch').length;
-  const flashCount = INITIAL_PRODUCTS.filter((p) => p.category === 'flash').length;
+  const categories = Array.from(new Set(products.map(p => p.fabric || p.category))).filter(Boolean);
 
-  const filteredProducts = INITIAL_PRODUCTS.filter((p) => {
-    if (activeCategory === 'merch') return p.category === 'merch';
-    if (activeCategory === 'flash') return p.category === 'flash';
-    return true;
+  const filteredProducts = products.filter((p) => {
+    if (activeCategory === 'all') return true;
+    return (p.fabric === activeCategory || p.category === activeCategory);
   });
+
+  if (products.length === 0 && !isLoadingProducts) {
+    return null;
+  }
 
   return (
     <section id="designs" className="max-w-7xl mx-auto px-6 md:px-12 py-16">
-      {/* Category Tab Switcher matching Image 2 */}
-      <div className="grid grid-cols-2 bg-neutral-200/60 p-1 mb-12 rounded-sm overflow-hidden max-w-4xl mx-auto border border-neutral-300">
-        {/* Tab 001 - Merch */}
-        <button
-          onClick={() => setActiveCategory(activeCategory === 'merch' ? 'all' : 'merch')}
-          className={`py-4 px-6 flex items-center justify-between font-mono text-sm font-semibold transition-colors ${
-            activeCategory === 'merch'
-              ? 'bg-black text-white shadow-md'
-              : 'bg-neutral-200/80 text-neutral-800 hover:bg-neutral-300/80'
-          }`}
-        >
-          <span className="text-neutral-400">001</span>
-          <span>Merch ({merchCount})</span>
-        </button>
-
-        {/* Tab 002 - Flash Designs */}
-        <button
-          onClick={() => setActiveCategory(activeCategory === 'flash' ? 'all' : 'flash')}
-          className={`py-4 px-6 flex items-center justify-between font-mono text-sm font-semibold transition-colors ${
-            activeCategory === 'flash' || activeCategory === 'all'
-              ? 'bg-black text-white shadow-md'
-              : 'bg-neutral-200/80 text-neutral-800 hover:bg-neutral-300/80'
-          }`}
-        >
-          <span className="text-neutral-400">002</span>
-          <span>Flash designs ({flashCount})</span>
-        </button>
-      </div>
+      {/* Category Tab Switcher */}
+      {categories.length > 1 && (
+        <div className="flex items-center justify-center gap-2 mb-12 flex-wrap">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={`py-2.5 px-6 rounded-full font-mono text-xs font-semibold uppercase tracking-wider transition-colors ${
+              activeCategory === 'all'
+                ? 'bg-black text-white shadow-md'
+                : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
+            }`}
+          >
+            All ({products.length})
+          </button>
+          {categories.map((cat) => {
+            const count = products.filter(p => p.fabric === cat || p.category === cat).length;
+            return (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`py-2.5 px-6 rounded-full font-mono text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  activeCategory === cat
+                    ? 'bg-black text-white shadow-md'
+                    : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
+                }`}
+              >
+                {cat} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Grid Header Subtitle */}
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-neutral-200">
         <h2 className="text-xs uppercase font-mono tracking-widest text-neutral-500">
-          Showing {filteredProducts.length} Exclusive Studio Artifacts
+          Showing {filteredProducts.length} Artisan Products
         </h2>
         <span className="text-xs font-mono text-neutral-400">
-          One-Time Use Only • 1-of-1 Stencils
+          Direct Loom Certified Handloom
         </span>
       </div>
 
-      {/* Products 3-Column Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* Products Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {filteredProducts.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
@@ -66,3 +72,4 @@ export const ProductGridSection: React.FC = () => {
     </section>
   );
 };
+

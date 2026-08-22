@@ -2,8 +2,8 @@ import React from 'react';
 import { FinalProductsSection } from '@/components/FinalProductsSection';
 
 export const metadata = {
-  title: 'Our Products — VRTX Design Studio x DHARAA',
-  description: 'Explore our full catalog of biotechnological food supplements, food products, and premium cosmetics. Optimally selected formulations for every lifestyle.',
+  title: 'Curated Catalog — Pure Handloom Silks & Textiles',
+  description: 'Explore our full boutique catalog of authentic handloom silk sarees, zari brocades, and designer textiles direct from master artisan looms.',
 };
 
 export default function ProductsPage() {

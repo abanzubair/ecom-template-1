@@ -9,6 +9,7 @@ import {
   RiAddLine,
   RiSubtractLine,
   RiArrowRightLine,
+  RiWhatsappLine,
 } from 'react-icons/ri';
 
 export const CartDrawer: React.FC = () => {
@@ -21,16 +22,11 @@ export const CartDrawer: React.FC = () => {
     subtotal,
     totalCartItems,
     clearCart,
-    showToast
+    showToast,
+    checkoutViaWhatsApp
   } = useApp();
 
   if (!isCartOpen) return null;
-
-  const handleCheckout = () => {
-    showToast('Order received! Proceeding to Payment Gateway.');
-    clearCart();
-    setIsCartOpen(false);
-  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex justify-end">
@@ -58,11 +54,11 @@ export const CartDrawer: React.FC = () => {
               <RiShoppingBag3Line className="w-12 h-12 text-neutral-300" />
               <div>
                 <p className="text-base font-semibold text-neutral-800">Your cart is empty</p>
-                <p className="text-xs text-neutral-500 mt-1">Explore our exclusive flash designs & studio apparel.</p>
+                <p className="text-xs text-neutral-500 mt-1">Explore our exclusive artisan collection.</p>
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="mt-4 px-6 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-sm"
+                className="mt-4 px-6 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-full"
               >
                 Browse Collection
               </button>
@@ -73,7 +69,7 @@ export const CartDrawer: React.FC = () => {
                 <img
                   src={item.product.image}
                   alt={item.product.title}
-                  className="w-16 h-16 object-cover rounded bg-neutral-100 border border-neutral-200"
+                  className="w-16 h-16 object-cover rounded-xl bg-neutral-100 border border-neutral-200"
                 />
 
                 <div className="flex-1 space-y-1">
@@ -86,7 +82,7 @@ export const CartDrawer: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs font-mono font-bold text-neutral-700">
-                    {item.product.currency}{item.product.price}
+                    {item.product.currency}{item.product.price.toLocaleString('en-IN')}
                   </p>
 
                   {/* Quantity Controls */}
@@ -109,7 +105,7 @@ export const CartDrawer: React.FC = () => {
 
                 <div className="flex flex-col items-end space-y-2">
                   <span className="text-sm font-bold font-mono">
-                    {item.product.currency}{item.product.price * item.quantity}
+                    {item.product.currency}{(item.product.price * item.quantity).toLocaleString('en-IN')}
                   </span>
                   <button
                     onClick={() => removeFromCart(item.product.id)}
@@ -129,24 +125,24 @@ export const CartDrawer: React.FC = () => {
             <div className="space-y-1.5 text-xs text-neutral-600">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="font-mono font-bold text-neutral-900">${subtotal}</span>
+                <span className="font-mono font-bold text-neutral-900">₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between">
-                <span>Worldwide Studio Shipping</span>
-                <span className="text-emerald-700 font-medium">Calculated at Checkout</span>
+                <span>Shipping</span>
+                <span className="text-emerald-700 font-medium">Calculated upon order</span>
               </div>
             </div>
 
             <div className="pt-2 border-t border-neutral-200 flex justify-between items-baseline text-base font-bold">
               <span>Total Amount</span>
-              <span className="font-mono text-xl">${subtotal}</span>
+              <span className="font-mono text-xl">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
 
             <button
-              onClick={handleCheckout}
-              className="w-full py-3.5 bg-black hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-sm flex items-center justify-center space-x-2"
+              onClick={checkoutViaWhatsApp}
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-xl flex items-center justify-center space-x-2 shadow-md"
             >
-              <span>Proceed to Checkout</span>
+              <span>Order via WhatsApp</span>
               <RiArrowRightLine className="w-4 h-4" />
             </button>
           </div>
@@ -155,4 +151,3 @@ export const CartDrawer: React.FC = () => {
     </div>
   );
 };
-

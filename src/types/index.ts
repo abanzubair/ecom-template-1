@@ -2,14 +2,31 @@ export interface Product {
   id: string;
   code: string; // e.g. "001", "002"
   title: string;
-  category: 'merch' | 'flash';
+  category: string;
   price: number;
   currency: string;
-  status: 'Available' | 'Reserved' | 'Sold Out';
+  formattedPrice?: string;
+  status: 'Available' | 'Reserved' | 'Sold Out' | string;
   description: string;
   fullDescription?: string;
   image: string;
+  images?: string[];
   badge?: string;
+  fabric?: string;
+  weave?: string;
+  origin?: string;
+  zariType?: string;
+  yarnCount?: string;
+  weftDensity?: string;
+  work?: string;
+}
+
+export interface StoreInfo {
+  storeName: string;
+  slug?: string;
+  customDomain?: string;
+  logoUrl?: string;
+  whatsapp?: string;
 }
 
 export interface CartItem {
@@ -32,3 +49,4 @@ export interface Testimonial {
   quote: string;
   location: string;
 }
+
