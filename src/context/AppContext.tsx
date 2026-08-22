@@ -66,9 +66,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         setIsLoadingProducts(true);
         const data = await fetchStorefrontData();
-        if (data.products && data.products.length > 0) {
-          setProducts(data.products);
-        }
+        console.log('[Storefront Sync]', {
+          storeName: data?.storeInfo?.storeName,
+          productsCount: data?.products?.length,
+          isLive: data?.isLive
+        });
+        setProducts(data.products || []);
         if (data.storeInfo) {
           setStoreInfo(data.storeInfo);
         }

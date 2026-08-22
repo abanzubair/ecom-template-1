@@ -52,31 +52,21 @@ export async function fetchStorefrontData(): Promise<StorefrontData> {
       queryParam = `domain=${encodeURIComponent(domain)}`;
     } else if (typeof window !== 'undefined' && window.location.hostname && !window.location.hostname.includes('localhost')) {
       queryParam = `domain=${encodeURIComponent(window.location.hostname)}`;
+    } else {
+      // Default fallback slug for development & testing
+      queryParam = 'slug=abanzubair';
     }
-  }
-
-  // If no identifier available, return empty products array with default storeInfo
-  if (!queryParam) {
-    return {
-      storeInfo: {
-        storeName: 'My Reseller Boutique',
-        slug: '',
-        whatsapp: ''
-      },
-      products: [],
-      isLive: false
-    };
   }
 
   // Determine endpoints to try (primary + localhost fallbacks if running locally)
-  const endpointsToTry: string[] = [`${apiUrl}?${queryParam}`];
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    if (!apiUrl.includes('localhost:3001')) {
-      endpointsToTry.push(`http://localhost:3001/api/storefront?${queryParam}`);
-    }
-    if (!apiUrl.includes('localhost:3000')) {
-      endpointsToTry.push(`http://localhost:3000/api/storefront?${queryParam}`);
-    }
+  const endpointsToTry: string[] = [];
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    endpointsToTry.push(`http://localhost:3001/api/storefront?${queryParam}`);
+    endpointsToTry.push(`http://localhost:3000/api/storefront?${queryParam}`);
+  }
+  endpointsToTry.push(`${apiUrl}?${queryParam}`);
+  if (!apiUrl.includes('weave365.in')) {
+    endpointsToTry.push(`https://weave365.in/api/storefront?${queryParam}`);
   }
 
   let lastError = null;
