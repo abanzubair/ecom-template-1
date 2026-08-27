@@ -22,6 +22,7 @@ export async function fetchStorefrontData(): Promise<StorefrontData> {
   let domain = process.env.NEXT_PUBLIC_RESELLER_DOMAIN || '';
 
   // 1. Read URL query parameters (?slug=... or ?domain=...)
+  // 1. Read URL query parameters (?slug=... or ?domain=...) or clean pathname (/abazain)
   if (typeof window !== 'undefined') {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -29,6 +30,15 @@ export async function fetchStorefrontData(): Promise<StorefrontData> {
       const qDomain = urlParams.get('domain');
       if (qSlug) slug = qSlug;
       if (qDomain) domain = qDomain;
+
+      // If no query parameter, check if pathname has a handle: e.g. /abazain
+      if (!slug) {
+        const firstSegment = window.location.pathname.split('/').filter(Boolean)[0];
+        const reserved = ['about', 'contact', 'policy', 'privacy', 'product', 'products', 'api', '_next'];
+        if (firstSegment && !reserved.includes(firstSegment.toLowerCase())) {
+          slug = firstSegment.toLowerCase();
+        }
+      }
       
       // Auto-detect hostname if not running on localhost
       if (!slug && !domain && window.location.hostname && !window.location.hostname.includes('localhost')) {
