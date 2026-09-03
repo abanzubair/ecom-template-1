@@ -4,7 +4,30 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://agsldsqeynzydujmijgc.supabase.co';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnc2xkc3FleW56eWR1am1pamdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NDQxOTAsImV4cCI6MjEwNDAyMDE5MH0.PHFlhCQyRyBCxy1nFR2GdYgwcraiQZu8wSho29qkpEA';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Use isolated storage key to prevent stale JWTs from other projects causing 401 errors
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storageKey: 'boutique_storefront_auth_v1',
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
+
+if (typeof window !== 'undefined') {
+  try {
+    // Clear foreign/stale Supabase auth tokens that cause 401 invalid token on new project
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('sb-') || k.includes('supabase.auth.token')) && k !== 'boutique_storefront_auth_v1') {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch (e) {
+    // Ignore
+  }
+}
 
 export interface StorefrontData {
   storeInfo: StoreInfo;
@@ -47,14 +70,6 @@ export function resolveStoreSlugAndDomain(): { slug: string; domain: string } {
 export async function fetchStorefrontData(): Promise<StorefrontData> {
   const { slug, domain } = resolveStoreSlugAndDomain();
 
-  if (!slug && !domain) {
-    return {
-      storeInfo: { storeName: 'Boutique Store' },
-      products: [],
-      isLive: false,
-    };
-  }
-
   try {
     let tenant: any = null;
 
@@ -84,9 +99,21 @@ export async function fetchStorefrontData(): Promise<StorefrontData> {
       }
     }
 
+    // Fallback: If no slug/domain provided (e.g. root localhost or preview), load default active store
+    if (!tenant) {
+      const { data: firstStore } = await supabase
+        .from('boutique_tenants')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      tenant = firstStore;
+    }
+
     if (!tenant) {
       return {
-        storeInfo: { storeName: 'Boutique Not Found' },
+        storeInfo: { storeName: 'My Boutique' },
         products: [],
         isLive: false,
       };
