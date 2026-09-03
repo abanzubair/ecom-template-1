@@ -2,10 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Syne, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
-import { GlobalWidgets } from '@/components/GlobalWidgets';
-import { CartDrawer } from '@/components/CartDrawer';
+import { StorefrontShell } from '@/components/StorefrontShell';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -39,11 +36,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${syne.variable} ${mono.variable} scroll-smooth`}>
       <body className="min-h-screen flex flex-col justify-between antialiased selection:bg-black selection:text-white">
         <AppProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <CartDrawer />
-          <GlobalWidgets />
+          <StorefrontShell>{children}</StorefrontShell>
         </AppProvider>
       </body>
     </html>
