@@ -2,19 +2,19 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/services/weave365';
+import { useAdminTenant } from '../AdminTenantContext';
 import { 
   FiSearch, 
   FiEye, 
   FiEyeOff, 
   FiCheck, 
   FiEdit2, 
-  FiTrash2,
-  FiExternalLink
+  FiTrash2
 } from 'react-icons/fi';
 
 export default function AdminProductsPage() {
+  const { tenant } = useAdminTenant();
   const [products, setProducts] = useState<any[]>([]);
-  const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -22,30 +22,22 @@ export default function AdminProductsPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    if (tenant?.id) {
+      loadProducts();
+    }
+  }, [tenant?.id]);
 
   async function loadProducts() {
     try {
       setLoading(true);
-      const { data: tenants } = await supabase
-        .from('boutique_tenants')
+      const { data, error } = await supabase
+        .from('boutique_products')
         .select('*')
-        .limit(1);
+        .eq('tenant_id', tenant.id)
+        .order('created_at', { ascending: false });
 
-      const currentTenant = tenants?.[0] || null;
-      setTenant(currentTenant);
-
-      if (currentTenant) {
-        const { data, error } = await supabase
-          .from('boutique_products')
-          .select('*')
-          .eq('tenant_id', currentTenant.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setProducts(data || []);
-      }
+      if (error) throw error;
+      setProducts(data || []);
     } catch (err) {
       console.error('Error loading products:', err);
     } finally {
@@ -58,7 +50,8 @@ export default function AdminProductsPage() {
       const { error } = await supabase
         .from('boutique_products')
         .update({ is_published: !currentStatus })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenant.id);
 
       if (error) throw error;
       setProducts(prev => prev.map(p => p.id === id ? { ...p, is_published: !currentStatus } : p));
@@ -73,7 +66,8 @@ export default function AdminProductsPage() {
       const { error } = await supabase
         .from('boutique_products')
         .update({ retail_price: Number(editPrice) })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenant.id);
 
       if (error) throw error;
       setProducts(prev => prev.map(p => p.id === id ? { ...p, retail_price: Number(editPrice) } : p));
@@ -91,7 +85,8 @@ export default function AdminProductsPage() {
       const { error } = await supabase
         .from('boutique_products')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenant.id);
 
       if (error) throw error;
       setProducts(prev => prev.filter(p => p.id !== id));
@@ -113,7 +108,7 @@ export default function AdminProductsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Saree Catalog & Markups</h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-            Adjust your customer retail prices and control which designs are visible on your website
+            Managing products for <strong className="text-slate-200">{tenant?.store_name}</strong>
           </p>
         </div>
 

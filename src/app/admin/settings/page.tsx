@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/services/weave365';
+import { useAdminTenant } from '../AdminTenantContext';
 import { 
   FiCheckCircle, 
   FiGlobe, 
@@ -13,8 +14,7 @@ import {
 } from 'react-icons/fi';
 
 export default function AdminSettingsPage() {
-  const [tenant, setTenant] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { tenant, refreshTenant } = useAdminTenant();
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -31,37 +31,20 @@ export default function AdminSettingsPage() {
   });
 
   useEffect(() => {
-    async function loadTenant() {
-      try {
-        setLoading(true);
-        const { data: tenants } = await supabase
-          .from('boutique_tenants')
-          .select('*')
-          .limit(1);
-
-        const currentTenant = tenants?.[0] || null;
-        if (currentTenant) {
-          setTenant(currentTenant);
-          setFormData({
-            store_name: currentTenant.store_name || '',
-            tagline: currentTenant.tagline || '',
-            whatsapp: currentTenant.whatsapp || '',
-            logo_url: currentTenant.logo_url || '',
-            banner_url: currentTenant.banner_url || '',
-            theme_color: currentTenant.theme_color || '#0f172a',
-            accent_color: currentTenant.accent_color || '#b58342',
-            custom_domain: currentTenant.custom_domain || '',
-            about_text: currentTenant.about_text || '',
-          });
-        }
-      } catch (err) {
-        console.error('Error loading settings:', err);
-      } finally {
-        setLoading(false);
-      }
+    if (tenant) {
+      setFormData({
+        store_name: tenant.store_name || '',
+        tagline: tenant.tagline || '',
+        whatsapp: tenant.whatsapp || '',
+        logo_url: tenant.logo_url || '',
+        banner_url: tenant.banner_url || '',
+        theme_color: tenant.theme_color || '#0f172a',
+        accent_color: tenant.accent_color || '#b58342',
+        custom_domain: tenant.custom_domain || '',
+        about_text: tenant.about_text || '',
+      });
     }
-    loadTenant();
-  }, []);
+  }, [tenant]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +69,7 @@ export default function AdminSettingsPage() {
         .eq('id', tenant.id);
 
       if (error) throw error;
+      await refreshTenant();
       setSuccess('Boutique settings saved successfully!');
       setTimeout(() => setSuccess(null), 4000);
     } catch (err: any) {
@@ -95,16 +79,12 @@ export default function AdminSettingsPage() {
     }
   };
 
-  if (loading) {
-    return <div className="p-12 text-center text-slate-500 text-sm">Loading settings...</div>;
-  }
-
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold text-white tracking-tight">Boutique Branding & Settings</h1>
         <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-          Customize your storefront identity, WhatsApp order routing, and custom domain
+          Customizing <strong className="text-slate-200">{tenant?.store_name}</strong> (/{tenant?.slug})
         </p>
       </div>
 

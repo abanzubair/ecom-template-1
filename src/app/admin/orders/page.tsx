@@ -2,48 +2,38 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/services/weave365';
+import { useAdminTenant } from '../AdminTenantContext';
 import { 
   FiShoppingBag, 
   FiMessageSquare, 
-  FiClock, 
-  FiCheckCircle, 
   FiUser, 
   FiPhone,
-  FiMapPin,
-  FiFilter
+  FiMapPin
 } from 'react-icons/fi';
 
 export default function AdminOrdersPage() {
+  const { tenant } = useAdminTenant();
   const [orders, setOrders] = useState<any[]>([]);
-  const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
-    loadOrders();
-  }, []);
+    if (tenant?.id) {
+      loadOrders();
+    }
+  }, [tenant?.id]);
 
   async function loadOrders() {
     try {
       setLoading(true);
-      const { data: tenants } = await supabase
-        .from('boutique_tenants')
+      const { data, error } = await supabase
+        .from('boutique_orders')
         .select('*')
-        .limit(1);
+        .eq('tenant_id', tenant.id)
+        .order('created_at', { ascending: false });
 
-      const currentTenant = tenants?.[0] || null;
-      setTenant(currentTenant);
-
-      if (currentTenant) {
-        const { data, error } = await supabase
-          .from('boutique_orders')
-          .select('*')
-          .eq('tenant_id', currentTenant.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setOrders(data || []);
-      }
+      if (error) throw error;
+      setOrders(data || []);
     } catch (err) {
       console.error('Error loading orders:', err);
     } finally {
@@ -56,7 +46,8 @@ export default function AdminOrdersPage() {
       const { error } = await supabase
         .from('boutique_orders')
         .update({ status: newStatus })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .eq('tenant_id', tenant.id);
 
       if (error) throw error;
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
@@ -76,7 +67,7 @@ export default function AdminOrdersPage() {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Customer Inquiries & Orders</h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-            Customer inquiries and purchases placed directly through your boutique website
+            Customer inquiries and purchases placed directly through <strong className="text-slate-200">{tenant?.store_name}</strong>
           </p>
         </div>
 

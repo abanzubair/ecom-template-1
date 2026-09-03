@@ -3,53 +3,43 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/services/weave365';
+import { useAdminTenant } from './AdminTenantContext';
 import { 
   FiPackage, 
   FiShoppingBag, 
   FiDollarSign, 
   FiArrowUpRight,
   FiExternalLink,
-  FiCheckCircle,
-  FiClock,
   FiMessageSquare
 } from 'react-icons/fi';
 
 export default function AdminDashboardPage() {
-  const [tenant, setTenant] = useState<any>(null);
+  const { tenant } = useAdminTenant();
   const [productsCount, setProductsCount] = useState(0);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
+      if (!tenant?.id) return;
       try {
         setLoading(true);
-        // 1. Get current tenant
-        const { data: tenants } = await supabase
-          .from('boutique_tenants')
+
+        // 1. Count products for THIS tenant
+        const { count } = await supabase
+          .from('boutique_products')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id);
+        setProductsCount(count || 0);
+
+        // 2. Load recent orders for THIS tenant
+        const { data: recentOrders } = await supabase
+          .from('boutique_orders')
           .select('*')
-          .limit(1);
-
-        const currentTenant = tenants?.[0] || null;
-        setTenant(currentTenant);
-
-        if (currentTenant) {
-          // 2. Count products
-          const { count } = await supabase
-            .from('boutique_products')
-            .select('*', { count: 'exact', head: true })
-            .eq('tenant_id', currentTenant.id);
-          setProductsCount(count || 0);
-
-          // 3. Load recent orders
-          const { data: recentOrders } = await supabase
-            .from('boutique_orders')
-            .select('*')
-            .eq('tenant_id', currentTenant.id)
-            .order('created_at', { ascending: false })
-            .limit(5);
-          setOrders(recentOrders || []);
-        }
+          .eq('tenant_id', tenant.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+        setOrders(recentOrders || []);
       } catch (err) {
         console.error('Error loading admin dashboard:', err);
       } finally {
@@ -57,7 +47,7 @@ export default function AdminDashboardPage() {
       }
     }
     loadData();
-  }, []);
+  }, [tenant?.id]);
 
   const totalRevenue = orders.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
 
@@ -69,13 +59,13 @@ export default function AdminDashboardPage() {
           <div>
             <div className="inline-flex items-center space-x-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-400 text-xs font-semibold mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Live Boutique</span>
+              <span>Active Boutique</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-              {tenant?.store_name || 'My Boutique Store'}
+              {tenant?.store_name}
             </h1>
             <p className="text-slate-400 text-sm mt-1">
-              Handle: <strong className="text-slate-200">{tenant?.slug || 'setup-pending'}</strong>
+              Store Handle: <strong className="text-slate-200">/{tenant?.slug}</strong>
             </p>
           </div>
 
@@ -84,15 +74,15 @@ export default function AdminDashboardPage() {
               href="/admin/products"
               className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-lg shadow-amber-950/50"
             >
-              Manage Products
+              Manage Sarees
             </Link>
             <a
-              href="/"
+              href={`/${tenant?.slug}`}
               target="_blank"
               rel="noreferrer"
               className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 flex items-center gap-2 transition-all"
             >
-              <span>Preview Store</span>
+              <span>Preview Live Store</span>
               <FiExternalLink size={14} />
             </a>
           </div>
@@ -114,7 +104,7 @@ export default function AdminDashboardPage() {
 
         <div className="p-6 bg-slate-900/90 border border-slate-800/80 rounded-2xl flex items-center justify-between">
           <div>
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Inquiries</span>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Customer Orders</span>
             <div className="text-3xl font-extrabold text-white mt-2">{orders.length}</div>
             <span className="text-xs text-amber-400 font-medium mt-1 inline-block">WhatsApp & Cart Leads</span>
           </div>
@@ -140,7 +130,7 @@ export default function AdminDashboardPage() {
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-white">Recent Customer Enquiries</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Orders submitted via your live boutique website</p>
+            <p className="text-xs text-slate-400 mt-0.5">Orders placed exclusively on your boutique</p>
           </div>
           <Link
             href="/admin/orders"
