@@ -14,14 +14,15 @@ import {
   FiExternalLink,
   FiMenu,
   FiX,
-  FiArrowRight
+  FiArrowRight,
+  FiChevronDown
 } from 'react-icons/fi';
 
 function AdminShell({ children, user }: { children: React.ReactNode; user: any }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { tenant, loading: tenantLoading, claimTenant } = useAdminTenant();
+  const { tenant, tenantsList, loading: tenantLoading, switchTenant, claimTenant } = useAdminTenant();
   const [claimSlug, setClaimSlug] = useState('');
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -35,6 +36,9 @@ function AdminShell({ children, user }: { children: React.ReactNode; user: any }
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin_active_tenant_slug');
+    }
     router.replace('/admin/login');
   };
 
@@ -59,7 +63,7 @@ function AdminShell({ children, user }: { children: React.ReactNode; user: any }
     );
   }
 
-  // If user has no tenant linked yet, show store selection screen
+  // If no tenant is available
   if (!tenant) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
@@ -135,9 +139,10 @@ function AdminShell({ children, user }: { children: React.ReactNode; user: any }
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div>
-          <div className="p-6 border-b border-slate-800/80">
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center font-bold text-white shadow-lg shadow-amber-900/30">
+          {/* Boutique Brand & Switcher */}
+          <div className="p-5 border-b border-slate-800/80">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center font-bold text-white shadow-lg shadow-amber-900/30 text-base">
                 {tenant.store_name?.[0] || 'B'}
               </div>
               <div className="min-w-0 flex-1">
@@ -145,6 +150,31 @@ function AdminShell({ children, user }: { children: React.ReactNode; user: any }
                 <p className="text-xs text-amber-400 font-mono truncate">/{tenant.slug}</p>
               </div>
             </div>
+
+            {/* Switch Boutique Dropdown (if multiple boutiques exist) */}
+            {tenantsList.length > 1 && (
+              <div className="relative mt-2">
+                <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
+                  Active Boutique:
+                </label>
+                <div className="relative">
+                  <select
+                    value={tenant.slug}
+                    onChange={(e) => switchTenant(e.target.value)}
+                    className="w-full appearance-none bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-200 rounded-lg px-3 py-2 pr-7 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  >
+                    {tenantsList.map((t) => (
+                      <option key={t.id} value={t.slug}>
+                        {t.store_name} (/{t.slug})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                    <FiChevronDown size={13} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <nav className="p-4 space-y-1">
