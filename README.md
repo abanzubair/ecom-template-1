@@ -22,7 +22,7 @@ Create a `.env.local` file in the project root:
 
 ```env
 # 1. Weave365 API Endpoint
-NEXT_PUBLIC_WEAVE365_API_URL=https://weave365.in/api/storefront
+NEXT_PUBLIC_WEAVE365_API_URL=https://weave365.com/api/storefront
 
 # 2. Your Reseller Store Slug (from Weave365 Business Center Settings)
 NEXT_PUBLIC_RESELLER_SLUG=your-store-slug
