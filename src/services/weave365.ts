@@ -222,3 +222,77 @@ export async function createBoutiqueOrder(orderData: {
     return { error: err };
   }
 }
+
+/**
+ * Creates an inquiry record in the boutique database
+ */
+
+/**
+ * Creates an inquiry record in the boutique database
+ */
+export async function createBoutiqueInquiry(inquiryData: {
+  tenantSlug?: string;
+  tenantId?: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  subject?: string;
+  message?: string;
+  productTitle?: string;
+  sku?: string;
+  totalAmount?: number;
+}) {
+  try {
+    let tenantId = inquiryData.tenantId;
+    if (!tenantId && inquiryData.tenantSlug) {
+      const { data: tenant } = await supabase
+        .from('boutique_tenants')
+        .select('id')
+        .eq('slug', inquiryData.tenantSlug)
+        .maybeSingle();
+      if (tenant) tenantId = tenant.id;
+    }
+
+    if (!tenantId) {
+      const { data: fallbackTenant } = await supabase
+        .from('boutique_tenants')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      if (fallbackTenant) tenantId = fallbackTenant.id;
+    }
+
+    // Try inserting into boutique_inquiries table if it exists
+    try {
+      await supabase.from('boutique_inquiries').insert({
+        tenant_id: tenantId,
+        customer_name: inquiryData.customerName,
+        customer_phone: inquiryData.customerPhone || null,
+        customer_email: inquiryData.customerEmail || null,
+        subject: inquiryData.subject || 'Catalog Inquiry',
+        message: inquiryData.message || null,
+        product_title: inquiryData.productTitle || null,
+        sku: inquiryData.sku || null,
+        status: 'New Inquiry',
+      });
+    } catch (_) {}
+
+    // Also insert into boutique_orders table for unified order tracking
+    const orderPayload = {
+      tenant_id: tenantId,
+      customer_name: inquiryData.customerName,
+      customer_phone: inquiryData.customerPhone || null,
+      customer_email: inquiryData.customerEmail || null,
+      total_amount: inquiryData.totalAmount || 0,
+      total_price: inquiryData.totalAmount || 0,
+      status: 'Inquiry on WhatsApp',
+      notes: inquiryData.message || (inquiryData.sku ? `Inquiry for SKU: ${inquiryData.sku}` : 'Customer Inquiry'),
+      items: inquiryData.productTitle ? [{ title: inquiryData.productTitle, sku: inquiryData.sku, price: inquiryData.totalAmount || 0 }] : [],
+    };
+
+    return await supabase.from('boutique_orders').insert(orderPayload);
+  } catch (err) {
+    console.warn('[Storefront DB] Inquiry logging failed:', err);
+    return { error: err };
+  }
+}

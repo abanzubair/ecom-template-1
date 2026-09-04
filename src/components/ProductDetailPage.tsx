@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { createBoutiqueInquiry } from '@/services/weave365';
 import { ProductCard } from '@/components/ProductCard';
 import { Product } from '@/types';
 import {
@@ -88,6 +89,14 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   const handleOrderWhatsApp = () => {
+    createBoutiqueInquiry({
+      customerName: 'WhatsApp Patron',
+      productTitle: mainProduct.title,
+      sku: mainProduct.code,
+      totalAmount: mainProduct.price,
+      message: `Inquiry for ${mainProduct.title} (Code: ${mainProduct.code})`,
+    }).catch((err) => console.warn('Inquiry logging:', err));
+
     const whatsappNum = storeInfo.whatsapp ? storeInfo.whatsapp.replace(/\D/g, '') : '';
     let msg = `*Product Inquiry from ${storeInfo.storeName}*\n\n`;
     msg += `Hello! I am interested in ordering:\n`;

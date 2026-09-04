@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { createBoutiqueInquiry } from '@/services/weave365';
+
 import {
   RiChat3Line,
   RiPhoneLine,
@@ -64,15 +66,30 @@ export const GlobalWidgets: React.FC = () => {
   });
   const [querySubmitted, setQuerySubmitted] = useState(false);
 
-  const handleQuerySubmit = (e: React.FormEvent) => {
+  const handleQuerySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setQuerySubmitted(true);
+
+    try {
+      await createBoutiqueInquiry({
+        customerName: queryData.name,
+        customerEmail: queryData.email,
+        subject: queryData.subject,
+        message: queryData.message,
+      });
+    } catch (err) {
+      console.warn('Inquiry submission error:', err);
+    }
+
+    const waText = "*Inquiry from " + queryData.name + "*\nTopic: " + queryData.subject + "\nEmail: " + queryData.email + "\nMessage: " + queryData.message;
+    openWhatsAppDirect(waText);
+
     setTimeout(() => {
       setQuerySubmitted(false);
       setIsQueryOpen(false);
-      showToast('Your inquiry has been sent to our desk.');
+      showToast('Your inquiry has been logged and sent to WhatsApp!');
       setQueryData({ name: '', email: '', subject: 'Catalog Inquiry', message: '' });
-    }, 1500);
+    }, 1000);
   };
 
   const openWhatsAppDirect = (presetMsg?: string) => {

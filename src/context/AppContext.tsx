@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem, QueryFormData, StoreInfo } from '@/types';
-import { fetchStorefrontData } from '@/services/weave365';
+import { fetchStorefrontData, createBoutiqueInquiry } from '@/services/weave365';
 
 
 interface AppContextType {
@@ -133,6 +133,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const checkoutViaWhatsApp = () => {
     if (cart.length === 0) return;
+
+    const summary = cart.map((i) => `${i.product.title} (x${i.quantity})`).join(', ');
+    createBoutiqueInquiry({
+      customerName: 'WhatsApp Patron',
+      productTitle: summary,
+      totalAmount: subtotal,
+      message: `Cart checkout for ${cart.length} item(s): ${summary}`,
+    }).catch((err) => console.warn('Order logging:', err));
+
     const whatsappNum = storeInfo.whatsapp ? storeInfo.whatsapp.replace(/\D/g, '') : '';
     
     let message = `*Order Inquiry from ${storeInfo.storeName}*\n\n`;
