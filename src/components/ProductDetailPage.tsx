@@ -22,7 +22,10 @@ import {
   RiShirtLine,
   RiSparklingLine,
   RiCheckLine,
-  RiWhatsappLine
+  RiWhatsappLine,
+  RiCloseLine,
+  RiUserLine,
+  RiPhoneLine
 } from 'react-icons/ri';
 
 const COLORS = [
@@ -88,13 +91,35 @@ export const ProductDetailPage: React.FC = () => {
     showToast(`Added ${mainProduct.title} to cart!`);
   };
 
-  const handleOrderWhatsApp = () => {
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+  const [buyerName, setBuyerName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('weave365_buyer_name') || '' : ''));
+  const [buyerPhone, setBuyerPhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('weave365_buyer_phone') || '' : ''));
+  const [buyerCity, setBuyerCity] = useState('');
+  const [inquiryNote, setInquiryNote] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  const handleConfirmWhatsAppInquiry = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPhone = buyerPhone.replace(/[^0-9+]/g, '').trim();
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setPhoneError('Please enter a valid WhatsApp number (min 8 digits)');
+      return;
+    }
+    if (!buyerName.trim()) {
+      setPhoneError('Please enter your full name');
+      return;
+    }
+
+    localStorage.setItem('weave365_buyer_name', buyerName.trim());
+    localStorage.setItem('weave365_buyer_phone', cleanPhone);
+
     createBoutiqueInquiry({
-      customerName: 'WhatsApp Patron',
+      customerName: buyerName.trim(),
+      customerPhone: cleanPhone,
       productTitle: mainProduct.title,
       sku: mainProduct.code,
       totalAmount: mainProduct.price,
-      message: `Inquiry for ${mainProduct.title} (Code: ${mainProduct.code})`,
+      message: `Inquiry for ${mainProduct.title} (Code: ${mainProduct.code}) | Buyer WhatsApp: ${cleanPhone}${buyerCity ? ` | City: ${buyerCity}` : ''}${inquiryNote ? ` | Note: ${inquiryNote}` : ''}`,
     }).catch((err) => console.warn('Inquiry logging:', err));
 
     const whatsappNum = storeInfo.whatsapp ? storeInfo.whatsapp.replace(/\D/g, '') : '';
@@ -104,6 +129,11 @@ export const ProductDetailPage: React.FC = () => {
     msg += `Price: ${mainProduct.formattedPrice || `${mainProduct.currency}${mainProduct.price.toLocaleString('en-IN')}`}\n`;
     if (mainProduct.fabric) msg += `Fabric: ${mainProduct.fabric}\n`;
     if (mainProduct.weave) msg += `Weave: ${mainProduct.weave}\n`;
+    msg += `\n*Buyer Contact Details:*\n`;
+    msg += `• *Name:* ${buyerName.trim()}\n`;
+    msg += `• *WhatsApp:* ${cleanPhone}\n`;
+    if (buyerCity.trim()) msg += `• *City:* ${buyerCity.trim()}\n`;
+    if (inquiryNote.trim()) msg += `• *Note:* ${inquiryNote.trim()}\n`;
     msg += `\nPlease confirm availability and dispatch details.`;
 
     const waUrl = whatsappNum 
@@ -113,6 +143,8 @@ export const ProductDetailPage: React.FC = () => {
     if (typeof window !== 'undefined') {
       window.open(waUrl, '_blank');
     }
+
+    setIsInquiryModalOpen(false);
   };
 
 
@@ -213,7 +245,7 @@ export const ProductDetailPage: React.FC = () => {
               </button>
 
               <button
-                onClick={handleOrderWhatsApp}
+                onClick={() => setIsInquiryModalOpen(true)}
                 className="w-full sm:flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-md flex items-center justify-center space-x-2"
               >
                 <RiWhatsappLine className="w-5 h-5" />
@@ -382,6 +414,138 @@ export const ProductDetailPage: React.FC = () => {
         )}
 
       </div>
+
+      {/* WhatsApp Inquiry Modal requiring Buyer WhatsApp */}
+      {isInquiryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-neutral-200 text-left">
+            <button
+              onClick={() => setIsInquiryModalOpen(false)}
+              className="absolute top-5 right-5 p-1 text-neutral-400 hover:text-black transition-colors rounded-lg hover:bg-neutral-100"
+            >
+              <RiCloseLine className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1 pb-4 border-b border-neutral-100">
+              <span className="text-[10px] font-bold font-mono tracking-widest uppercase text-emerald-700">
+                Direct WhatsApp Concierge
+              </span>
+              <h3 className="text-xl font-bold font-display text-neutral-900">
+                Order via WhatsApp
+              </h3>
+            </div>
+
+            {/* Saree Snippet */}
+            <div className="flex items-center gap-3.5 my-4 p-3 rounded-xl bg-neutral-50 border border-neutral-200">
+              <div className="w-14 h-16 rounded-lg overflow-hidden bg-white shrink-0 border border-neutral-200">
+                <img
+                  src={mainProduct.image}
+                  alt={mainProduct.title}
+                  className="w-full h-full object-cover object-top"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-semibold text-neutral-900 truncate">
+                  {mainProduct.title}
+                </h4>
+                <div className="text-[11px] text-neutral-500 font-mono mt-0.5">
+                  Code: {mainProduct.code}
+                </div>
+                <div className="text-sm font-bold text-neutral-950 mt-1 tabular-nums">
+                  ₹{mainProduct.price.toLocaleString('en-IN')}
+                </div>
+              </div>
+            </div>
+
+            {phoneError && (
+              <div className="mb-4 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                {phoneError}
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmWhatsAppInquiry} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-mono uppercase text-neutral-600 mb-1">
+                  Your Full Name *
+                </label>
+                <div className="relative">
+                  <RiUserLine className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={buyerName}
+                    onChange={(e) => {
+                      setBuyerName(e.target.value);
+                      if (phoneError) setPhoneError(null);
+                    }}
+                    placeholder="e.g. Radhika Sharma"
+                    className="w-full pl-9 pr-3 py-2.5 bg-neutral-50 border border-neutral-300 focus:outline-none focus:border-black rounded-lg text-neutral-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-mono uppercase text-neutral-600 mb-1">
+                  WhatsApp Phone Number *
+                </label>
+                <div className="relative">
+                  <RiPhoneLine className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    required
+                    value={buyerPhone}
+                    onChange={(e) => {
+                      setBuyerPhone(e.target.value);
+                      if (phoneError) setPhoneError(null);
+                    }}
+                    placeholder="+91 98765 43210"
+                    className={`w-full pl-9 pr-3 py-2.5 bg-neutral-50 border rounded-lg focus:outline-none font-mono text-neutral-900 ${
+                      phoneError ? 'border-red-500 text-red-950' : 'border-neutral-300 focus:border-black'
+                    }`}
+                  />
+                </div>
+                <span className="text-[10px] text-neutral-500 mt-1 block">
+                  Required to confirm saree availability and send order updates.
+                </span>
+              </div>
+
+              <div>
+                <label className="block font-mono uppercase text-neutral-600 mb-1">
+                  Delivery City / Pincode (optional)
+                </label>
+                <input
+                  type="text"
+                  value={buyerCity}
+                  onChange={(e) => setBuyerCity(e.target.value)}
+                  placeholder="e.g. Varanasi, 221001"
+                  className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-300 focus:outline-none focus:border-black rounded-lg text-neutral-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono uppercase text-neutral-600 mb-1">
+                  Special Note / Customization Request (optional)
+                </label>
+                <input
+                  type="text"
+                  value={inquiryNote}
+                  onChange={(e) => setInquiryNote(e.target.value)}
+                  placeholder="e.g. Include fall & pico, gift wrap"
+                  className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-300 focus:outline-none focus:border-black rounded-lg text-neutral-900"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full mt-2 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center space-x-2"
+              >
+                <RiWhatsappLine className="w-4 h-4" />
+                <span>Continue to WhatsApp</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -36,6 +36,9 @@ export const GlobalWidgets: React.FC = () => {
 
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const [waMessage, setWaMessage] = useState('');
+  const [waChatName, setWaChatName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('weave365_buyer_name') || '' : ''));
+  const [waChatPhone, setWaChatPhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('weave365_buyer_phone') || '' : ''));
+  const [waChatError, setWaChatError] = useState<string | null>(null);
   const [hideFloatingButtons, setHideFloatingButtons] = useState(false);
 
   // Hide floating action buttons when footer comes into view
@@ -59,37 +62,98 @@ export const GlobalWidgets: React.FC = () => {
 
   // Query form state
   const [queryData, setQueryData] = useState({
-    name: '',
+    name: typeof window !== 'undefined' ? localStorage.getItem('weave365_buyer_name') || '' : '',
+    phone: typeof window !== 'undefined' ? localStorage.getItem('weave365_buyer_phone') || '' : '',
     email: '',
     subject: 'Catalog Inquiry',
     message: ''
   });
+  const [queryPhoneError, setQueryPhoneError] = useState<string | null>(null);
   const [querySubmitted, setQuerySubmitted] = useState(false);
 
   const handleQuerySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanPhone = queryData.phone.replace(/[^0-9+]/g, '').trim();
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setQueryPhoneError('Please enter a valid WhatsApp number (min 8 digits)');
+      return;
+    }
+    if (!queryData.name.trim()) {
+      setQueryPhoneError('Please enter your name');
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('weave365_buyer_name', queryData.name.trim());
+      localStorage.setItem('weave365_buyer_phone', cleanPhone);
+    }
+
     setQuerySubmitted(true);
 
     try {
       await createBoutiqueInquiry({
-        customerName: queryData.name,
-        customerEmail: queryData.email,
+        customerName: queryData.name.trim(),
+        customerPhone: cleanPhone,
+        customerEmail: queryData.email || undefined,
         subject: queryData.subject,
-        message: queryData.message,
+        message: `${queryData.message} | Buyer WhatsApp: ${cleanPhone}`,
       });
     } catch (err) {
       console.warn('Inquiry submission error:', err);
     }
 
-    const waText = "*Inquiry from " + queryData.name + "*\nTopic: " + queryData.subject + "\nEmail: " + queryData.email + "\nMessage: " + queryData.message;
+    const waText = "*Inquiry from " + queryData.name.trim() + "*\n" +
+      "WhatsApp: " + cleanPhone + "\n" +
+      (queryData.email ? "Email: " + queryData.email + "\n" : "") +
+      "Topic: " + queryData.subject + "\n" +
+      "Message: " + queryData.message;
     openWhatsAppDirect(waText);
 
     setTimeout(() => {
       setQuerySubmitted(false);
       setIsQueryOpen(false);
       showToast('Your inquiry has been logged and sent to WhatsApp!');
-      setQueryData({ name: '', email: '', subject: 'Catalog Inquiry', message: '' });
+      setQueryData({ 
+        name: queryData.name.trim(), 
+        phone: cleanPhone, 
+        email: '', 
+        subject: 'Catalog Inquiry', 
+        message: '' 
+      });
     }, 1000);
+  };
+
+  const handleWhatsAppChatSubmit = async (e?: React.FormEvent, customMsg?: string) => {
+    if (e) e.preventDefault();
+    const cleanPhone = waChatPhone.replace(/[^0-9+]/g, '').trim();
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setWaChatError('Please enter a valid WhatsApp number (min 8 digits)');
+      return;
+    }
+    if (!waChatName.trim()) {
+      setWaChatError('Please enter your name');
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('weave365_buyer_name', waChatName.trim());
+      localStorage.setItem('weave365_buyer_phone', cleanPhone);
+    }
+
+    const outgoingMsg = customMsg || waMessage || `Hello ${storeInfo.storeName}! I am interested in your curated collection.`;
+
+    try {
+      await createBoutiqueInquiry({
+        customerName: waChatName.trim(),
+        customerPhone: cleanPhone,
+        subject: 'WhatsApp Concierge Inquiry',
+        message: `${outgoingMsg} | Buyer WhatsApp: ${cleanPhone}`,
+      });
+    } catch (_) {}
+
+    const text = `*Inquiry from ${waChatName.trim()}*\nWhatsApp: ${cleanPhone}\n\n${outgoingMsg}`;
+    openWhatsAppDirect(text);
+    setIsWhatsAppOpen(false);
   };
 
   const openWhatsAppDirect = (presetMsg?: string) => {
@@ -177,34 +241,61 @@ export const GlobalWidgets: React.FC = () => {
             <div className="space-y-1.5 pt-2">
               <p className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Quick Prompts:</p>
               <button
-                onClick={() => openWhatsAppDirect('Hi, I would like to check flash design #001 Birds & Skull availability.')}
+                type="button"
+                onClick={() => setWaMessage('Hi, I would like to check handloom silk saree collection & availability.')}
                 className="w-full text-left p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 rounded border border-emerald-200 transition-colors flex items-center justify-between"
               >
-                <span>Check Flash Design Availability</span>
+                <span>Inquire About Collection</span>
                 <RiSendPlaneLine className="w-3 h-3 text-emerald-600" />
               </button>
             </div>
           </div>
 
-          {/* Input Footer */}
-          <div className="p-3 bg-white border-t border-neutral-200 flex items-center space-x-2">
-            <input
-              type="text"
-              value={waMessage}
-              onChange={(e) => setWaMessage(e.target.value)}
-              placeholder="Type WhatsApp message..."
-              className="w-full px-3 py-2 text-xs border border-neutral-300 rounded-md focus:outline-none focus:border-emerald-600"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') openWhatsAppDirect();
-              }}
-            />
-            <button
-              onClick={() => openWhatsAppDirect()}
-              className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors"
-            >
-              <RiSendPlaneLine className="w-4 h-4" />
-            </button>
-          </div>
+          {/* Form with required Buyer Contact */}
+          <form onSubmit={handleWhatsAppChatSubmit} className="p-3.5 bg-white border-t border-neutral-200 space-y-2">
+            {waChatError && (
+              <p className="text-[11px] text-red-600 font-medium">{waChatError}</p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                required
+                value={waChatName}
+                onChange={(e) => {
+                  setWaChatName(e.target.value);
+                  if (waChatError) setWaChatError(null);
+                }}
+                placeholder="Your Name *"
+                className="w-full px-2.5 py-1.5 text-xs bg-neutral-50 border border-neutral-300 rounded focus:outline-none focus:border-emerald-600"
+              />
+              <input
+                type="tel"
+                required
+                value={waChatPhone}
+                onChange={(e) => {
+                  setWaChatPhone(e.target.value);
+                  if (waChatError) setWaChatError(null);
+                }}
+                placeholder="WhatsApp (+91...) *"
+                className="w-full px-2.5 py-1.5 text-xs bg-neutral-50 border border-neutral-300 rounded focus:outline-none focus:border-emerald-600 font-mono"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={waMessage}
+                onChange={(e) => setWaMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="w-full px-3 py-2 text-xs border border-neutral-300 rounded-md focus:outline-none focus:border-emerald-600"
+              />
+              <button
+                type="submit"
+                className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors shrink-0"
+              >
+                <RiSendPlaneLine className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -241,22 +332,43 @@ export const GlobalWidgets: React.FC = () => {
                 </div>
               ) : (
                 <form onSubmit={handleQuerySubmit} className="space-y-4 text-xs">
+                  {queryPhoneError && (
+                    <div className="p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
+                      {queryPhoneError}
+                    </div>
+                  )}
                   <div>
-                    <label className="block font-mono uppercase text-neutral-600 mb-1">Your Name</label>
+                    <label className="block font-mono uppercase text-neutral-600 mb-1">Your Name *</label>
                     <input
                       type="text"
                       required
                       value={queryData.name}
-                      onChange={(e) => setQueryData({ ...queryData, name: e.target.value })}
+                      onChange={(e) => {
+                        setQueryData({ ...queryData, name: e.target.value });
+                        if (queryPhoneError) setQueryPhoneError(null);
+                      }}
                       placeholder="e.g. Sarah Jenkins"
                       className="w-full px-4 py-2 bg-neutral-50 border border-neutral-300 focus:outline-none focus:border-black rounded-sm"
                     />
                   </div>
                   <div>
-                    <label className="block font-mono uppercase text-neutral-600 mb-1">Email Address</label>
+                    <label className="block font-mono uppercase text-neutral-600 mb-1">WhatsApp Phone Number *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={queryData.phone}
+                      onChange={(e) => {
+                        setQueryData({ ...queryData, phone: e.target.value });
+                        if (queryPhoneError) setQueryPhoneError(null);
+                      }}
+                      placeholder="e.g. +91 98765 43210"
+                      className="w-full px-4 py-2 bg-neutral-50 border border-neutral-300 focus:outline-none focus:border-black rounded-sm font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-mono uppercase text-neutral-600 mb-1">Email Address (optional)</label>
                     <input
                       type="email"
-                      required
                       value={queryData.email}
                       onChange={(e) => setQueryData({ ...queryData, email: e.target.value })}
                       placeholder="sarah@domain.com"

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import {
   RiShoppingBag3Line,
@@ -25,6 +25,11 @@ export const CartDrawer: React.FC = () => {
     showToast,
     checkoutViaWhatsApp
   } = useApp();
+
+  const [buyerName, setBuyerName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('weave365_buyer_name') || '' : ''));
+  const [buyerPhone, setBuyerPhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('weave365_buyer_phone') || '' : ''));
+  const [city, setCity] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   if (!isCartOpen) return null;
 
@@ -138,8 +143,71 @@ export const CartDrawer: React.FC = () => {
               <span className="font-mono text-xl">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
 
+            {/* Buyer Contact Details (WhatsApp Required) */}
+            <div className="space-y-2 pt-2 border-t border-neutral-200">
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-neutral-600 mb-1">
+                  Your Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={buyerName}
+                  onChange={(e) => setBuyerName(e.target.value)}
+                  placeholder="e.g. Radhika Sharma"
+                  className="w-full px-3 py-2 text-xs bg-white border border-neutral-300 rounded-lg focus:outline-none focus:border-black"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-neutral-600 mb-1">
+                  Your WhatsApp Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={buyerPhone}
+                  onChange={(e) => {
+                    setBuyerPhone(e.target.value);
+                    if (phoneError) setPhoneError(null);
+                  }}
+                  placeholder="+91 98765 43210"
+                  className={`w-full px-3 py-2 text-xs bg-white border rounded-lg focus:outline-none font-mono ${
+                    phoneError ? 'border-red-500 text-red-950' : 'border-neutral-300 focus:border-black'
+                  }`}
+                />
+                {phoneError && (
+                  <p className="text-[11px] text-red-500 mt-1">{phoneError}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-neutral-600 mb-1">
+                  Delivery City / Pincode (optional)
+                </label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. Varanasi, 221001"
+                  className="w-full px-3 py-2 text-xs bg-white border border-neutral-300 rounded-lg focus:outline-none focus:border-black"
+                />
+              </div>
+            </div>
+
             <button
-              onClick={checkoutViaWhatsApp}
+              onClick={() => {
+                const cleanPhone = buyerPhone.replace(/[^0-9+]/g, '').trim();
+                if (!cleanPhone || cleanPhone.length < 8) {
+                  setPhoneError('Please enter a valid WhatsApp number (min 8 digits)');
+                  return;
+                }
+                if (!buyerName.trim()) {
+                  setPhoneError('Please enter your full name');
+                  return;
+                }
+                localStorage.setItem('weave365_buyer_name', buyerName.trim());
+                localStorage.setItem('weave365_buyer_phone', cleanPhone);
+                checkoutViaWhatsApp(buyerName.trim(), cleanPhone, city.trim() || undefined);
+              }}
               className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-xl flex items-center justify-center space-x-2 shadow-md"
             >
               <span>Order via WhatsApp</span>

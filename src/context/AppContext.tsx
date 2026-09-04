@@ -37,7 +37,7 @@ interface AppContextType {
   showToast: (msg: string) => void;
 
   // Order on WhatsApp
-  checkoutViaWhatsApp: () => void;
+  checkoutViaWhatsApp: (customerName: string, customerPhone: string, shippingAddress?: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -131,15 +131,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
 
-  const checkoutViaWhatsApp = () => {
+  const checkoutViaWhatsApp = (customerName: string, customerPhone: string, shippingAddress?: string) => {
     if (cart.length === 0) return;
 
     const summary = cart.map((i) => `${i.product.title} (x${i.quantity})`).join(', ');
     createBoutiqueInquiry({
-      customerName: 'WhatsApp Patron',
+      customerName: customerName || 'Valued Patron',
+      customerPhone: customerPhone || undefined,
       productTitle: summary,
       totalAmount: subtotal,
-      message: `Cart checkout for ${cart.length} item(s): ${summary}`,
+      message: `Cart checkout: ${summary} | Destination: ${shippingAddress || 'Not specified'} | Buyer WhatsApp: ${customerPhone}`,
     }).catch((err) => console.warn('Order logging:', err));
 
     const whatsappNum = storeInfo.whatsapp ? storeInfo.whatsapp.replace(/\D/g, '') : '';
@@ -155,7 +156,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     message += `*Total Amount:* ₹${subtotal.toLocaleString('en-IN')}\n\n`;
-    message += `Please confirm availability and dispatch details.`;
+    message += `*Buyer Contact Details:*\n`;
+    message += `• *Name:* ${customerName}\n`;
+    message += `• *WhatsApp:* ${customerPhone}\n`;
+    if (shippingAddress) {
+      message += `• *Destination:* ${shippingAddress}\n`;
+    }
+    message += `\nPlease confirm availability and dispatch details.`;
 
     const encoded = encodeURIComponent(message);
     const waUrl = whatsappNum 
